@@ -35,7 +35,7 @@ class TailwindBuilder implements Builder {
     var configFile = File('tailwind.config.js');
     var hasCustomConfig = await configFile.exists();
 
-    final process = await Process.run(
+    final runTailwind = await Process.run(
       'tailwindcss',
       [
         '--input',
@@ -52,10 +52,18 @@ class TailwindBuilder implements Builder {
               .toPosix(true),
         ],
       ],
+      runInShell: true,
     );
 
-    final cssFileContent = process.stdout;
-    await buildStep.writeAsString(outputId, cssFileContent);
+    final stderrLines = runTailwind.stderr.toString().trim().split('\n');
+    final lastLine = stderrLines.isNotEmpty ? stderrLines.last : '';
+    if (lastLine.contains('Done')) {
+      log.info(runTailwind.stderr);
+      final cssFileContent = runTailwind.stdout;
+      await buildStep.writeAsString(outputId, cssFileContent);
+    } else {
+      log.severe(runTailwind.stderr);
+    }
   }
 
   @override
