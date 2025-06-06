@@ -6,7 +6,7 @@ builders:
       "web/{{file}}.tw.css":
         - "web/{{file}}.css"
     auto_apply: dependents
-    build_to: cache
+    build_to: source
     defaults:
       release_options:
         tailwindcss: --minify

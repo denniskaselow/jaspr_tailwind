@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:build/build.dart';
-import 'package:build_modules/build_modules.dart';
 import 'package:glob/glob.dart';
 import 'package:path/path.dart' as p;
 
@@ -15,16 +14,15 @@ class TailwindBuilder implements Builder {
 
   @override
   Future<void> build(BuildStep buildStep) async {
-    var scratchSpace = await buildStep.fetchResource(scratchSpaceResource);
-
-    await scratchSpace.ensureAssets({buildStep.inputId}, buildStep);
-
-    var outputId = buildStep.inputId.changeExtension('').changeExtension('.css');
+    var outputId =
+        buildStep.inputId.changeExtension('').changeExtension('.css');
 
     var packageFile = File('.dart_tool/package_config.json');
     var packageJson = jsonDecode(await packageFile.readAsString());
 
-    var packageConfig = (packageJson['packages'] as List?)?.where((p) => p['name'] == 'jaspr_tailwind').firstOrNull;
+    var packageConfig = (packageJson['packages'] as List?)
+        ?.where((p) => p['name'] == 'jaspr_tailwind')
+        .firstOrNull;
     if (packageConfig == null) {
       print("Cannot find 'jaspr_tailwind' in package config.");
       return;
@@ -37,26 +35,27 @@ class TailwindBuilder implements Builder {
     var configFile = File('tailwind.config.js');
     var hasCustomConfig = await configFile.exists();
 
-    await Process.run(
+    final process = await Process.run(
       'tailwindcss',
       [
         '--input',
-        scratchSpace.fileFor(buildStep.inputId).path,
-        '--output',
-        scratchSpace.fileFor(outputId).path.toPosix(),
-        if (options.config.containsKey('tailwindcss')) options.config['tailwindcss'],
+        buildStep.inputId.path,
+        if (options.config.containsKey('tailwindcss'))
+          options.config['tailwindcss'],
         if (hasCustomConfig) ...[
           '--config',
           p.join(Directory.current.path, 'tailwind.config.js').toPosix(),
         ] else ...[
           '--content',
-          p.join(Directory.current.path, '{lib,web}', '**', '*.dart').toPosix(true),
+          p
+              .join(Directory.current.path, '{lib,web}', '**', '*.dart')
+              .toPosix(true),
         ],
       ],
-      runInShell: true,
     );
 
-    await scratchSpace.copyOutput(outputId, buildStep);
+    final cssFileContent = process.stdout;
+    await buildStep.writeAsString(outputId, cssFileContent);
   }
 
   @override
