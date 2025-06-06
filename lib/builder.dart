@@ -52,6 +52,8 @@ class TailwindBuilder implements Builder {
               .toPosix(true),
         ],
       ],
+      stdoutEncoding: Utf8Codec(),
+      stderrEncoding: Utf8Codec(),
       runInShell: true,
     );
 
